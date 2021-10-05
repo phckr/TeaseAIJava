@@ -43,13 +43,17 @@ public class RunableVocabulary extends Vocabulary {
 
     @Override
     public String toString() {
+        return toString(null);
+    }
+    @Override
+    public String toString(String arg) {
         ScriptEngine engine = ScriptHandler.getHandler().getEngine();
         String responseName = name;
 
         try {
             Invocable invocable = (Invocable) engine;
 
-            return invocable.invokeFunction(getFunctionName()).toString();
+            return invocable.invokeFunction(getFunctionName(), arg).toString();
         } catch (ScriptException e) {
             TeaseLogger.getLogger().log(Level.SEVERE, "Error while handling file '" + e.getFileName() + "' in line " + e.getLineNumber() + "\n" +
                     "Error: " + e.getMessage(), false);

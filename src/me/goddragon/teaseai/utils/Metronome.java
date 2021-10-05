@@ -1,5 +1,10 @@
 package me.goddragon.teaseai.utils;
 
+import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.gui.http.EventSocket;
+
+import java.util.logging.Level;
+
 import javax.sound.midi.*;
 
 /**
@@ -9,19 +14,36 @@ public class Metronome implements MetaEventListener {
     private Sequencer sequencer;
     private int bpm;
 
+    private boolean sendToWebsocket(int bpm) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+        if (websocket != null) {
+            websocket.sendMetronome(bpm);
+            return true;
+        }
+
+        return false;
+    }
+
     public void start(int bpm) {
-        try {
-            this.bpm = bpm;
-            openSequencer();
-            Sequence seq = createSequence();
-            startSequence(seq);
-        } catch (InvalidMidiDataException | MidiUnavailableException ex) {
+    	TeaseLogger.getLogger().log(Level.FINE, "Starting metronome at: " + bpm + " bpm");
+        if (!sendToWebsocket(bpm)) {
+            try {
+                this.bpm = bpm;
+                openSequencer();
+                Sequence seq = createSequence();
+                startSequence(seq);
+            } catch (InvalidMidiDataException | MidiUnavailableException ex) {
+            }
         }
     }
 
     public void destroy() {
-        sequencer.stop();
-        sequencer.close();
+    	TeaseLogger.getLogger().log(Level.FINE, "Stopping metronome");
+        sendToWebsocket(-1);
+    	if (sequencer != null) {
+	        sequencer.stop();
+	        sequencer.close();
+    	}
     }
 
     private void openSequencer() throws MidiUnavailableException {

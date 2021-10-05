@@ -390,7 +390,7 @@ public class Utils {
                     try {
                         classes.add(Class.forName(className));
                     } catch (ClassNotFoundException e) {
-                        throw new RuntimeException("ClassNotFoundException loading " + className);
+                        throw new RuntimeException("ClassNotFoundException loading " + className, e);
                     }
                 }
             }
@@ -409,13 +409,15 @@ public class Utils {
                     if (entryName.startsWith(relPath)
                             && entryName.length() > (relPath.length() + "/".length())
                             && !nextElement.isDirectory()) {
-                        String className = entryName.replace('/', '.').replace('\\', '.').replace(".class", "");
-                        try {
-                            classes.add(Class.forName(className));
-                        } catch (ClassNotFoundException e) {
-                            LOGGER.log(Level.SEVERE, "ClassNotFoundException loading " + className);
-                            jarFile.close(); // Resource leak fix?
-                            throw new RuntimeException("ClassNotFoundException loading " + className);
+                        if (!entryName.toLowerCase().endsWith(".java")) {
+                            String className = entryName.replace('/', '.').replace('\\', '.').replace(".class", "");
+                            try {
+                                classes.add(Class.forName(className));
+                            } catch (ClassNotFoundException e) {
+                                LOGGER.log(Level.SEVERE, "ClassNotFoundException loading " + className, e);
+                                jarFile.close(); // Resource leak fix?
+                                throw new RuntimeException("ClassNotFoundException loading " + className, e);
+                            }
                         }
                     }
                 }

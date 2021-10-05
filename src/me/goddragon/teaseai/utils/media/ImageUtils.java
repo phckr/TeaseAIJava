@@ -4,6 +4,8 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
+import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.gui.http.EventSocket;
 import me.goddragon.teaseai.utils.TeaseLogger;
 import me.goddragon.teaseai.utils.libraries.imagescaling.ResampleFilters;
 import me.goddragon.teaseai.utils.libraries.imagescaling.ResampleOp;
@@ -11,14 +13,29 @@ import me.goddragon.teaseai.utils.libraries.imagescaling.ResampleOp;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.logging.Level;
 
 public class ImageUtils {
+
+    private static void sendDisplayImage(File image, String region) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+        if (websocket != null) {
+            try {
+                websocket.displayMedia(image.toString(), region);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     public static void setImageInView(File image, ImageView imageView) {
         if (image == null) {
             TeaseLogger.getLogger().log(Level.SEVERE, "Can't set image to null (should be handled by MediaHandler)");
         }
+        
+        TeaseLogger.getLogger().log(Level.FINE, "Showing image: " + image.toString() + " in " + imageView.toString());
+        sendDisplayImage(image, imageView.getId());
 
         double paneWidth = ((Region) imageView.getParent()).getWidth();
         double paneHeight = ((Region) imageView.getParent()).getHeight();

@@ -127,7 +127,10 @@ public class PictureSet {
             picturesInFolder = getFolder().listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return (name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".gif"));
+                    return (name.toLowerCase().endsWith(".jpg")
+                            || name.toLowerCase().endsWith(".png")
+                            || name.toLowerCase().endsWith(".webp")
+                            || name.toLowerCase().endsWith(".gif"));
                 }
             });
         }

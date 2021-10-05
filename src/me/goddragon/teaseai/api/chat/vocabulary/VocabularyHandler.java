@@ -118,13 +118,12 @@ public class VocabularyHandler {
 
     public String replaceAllVocabularies(String message, int loops) {
         String result = message;
-        Pattern p = Pattern.compile("[%][a-zA-Z0-9_]*[%]");
+        Pattern p = Pattern.compile("[%]([a-zA-Z0-9_]*)(:([A-Za-z0-9_,.-]+))?[%]");
         Matcher m = p.matcher(message);
         boolean foundMatch = false;
         while (m.find()) {
             foundMatch = true;
-            String vocab = m.group().substring(1, m.group().length() - 1);
-            result = result.replace(m.group(), getVocabulary(vocab).toString());
+            result = result.replace(m.group(), getVocabulary(m.group(1)).toString(m.group(3)));
         }
 
         String newResult = result;

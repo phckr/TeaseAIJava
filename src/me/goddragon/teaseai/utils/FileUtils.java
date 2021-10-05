@@ -14,6 +14,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.logging.Level;
 
 /**
  * Created by GodDragon on 05.04.2018.
@@ -22,7 +24,6 @@ public class FileUtils {
 
     public static List<File> getMatchingFiles(String pathString) {
         pathString = pathString.replace("/", File.separator).replace("\\", File.separator);
-
 
         List<File> files = new ArrayList<>();
 
@@ -39,8 +40,7 @@ public class FileUtils {
             if (!dir.toFile().exists()) {
                 return new ArrayList<>();
             }
-
-            DirectoryStream<Path> stream = Files.newDirectoryStream(dir, fileWildcard);
+            DirectoryStream<Path> stream = newCaseInsensitiveDirectoryStream(dir, fileWildcard);
 
             for (Path path : stream) {
                 files.add(path.toFile());
@@ -54,6 +54,24 @@ public class FileUtils {
         return files;
     }
 
+    private static DirectoryStream newCaseInsensitiveDirectoryStream(Path dir, String glob) throws IOException {
+        FileSystem fs = dir.getFileSystem();
+        final PathMatcher matcher = fs.getPathMatcher("glob:" + glob.toLowerCase());
+        //TeaseLogger.getLogger().log(Level.SEVERE, "PathMatcher " + matcher.toString());
+
+        DirectoryStream.Filter<Path> filter = new DirectoryStream.Filter<Path>() {
+            public boolean accept(Path entry)  {
+                //TeaseLogger.getLogger().log(Level.SEVERE, "Accept called " + entry.toString());
+
+                Path lowerPath = fs.getPath(entry.getFileName().toString().toLowerCase());
+                //TeaseLogger.getLogger().log(Level.SEVERE, "lower path: " + lowerPath.toString());
+                return matcher.matches(lowerPath);
+            }
+        };
+        return fs.provider().newDirectoryStream(dir, filter);
+    }
+
+
     public static File getRandomMatchingFile(String pathString) {
         List<File> files = getMatchingFiles(pathString);
 
@@ -62,6 +80,34 @@ public class FileUtils {
         }
 
         return files.get(RandomUtils.randInt(0, files.size() - 1));
+    }
+
+    public static File getRandomImageMatchingFile(String pathString) {
+        List<File> files = getMatchingFiles(pathString);
+
+        boolean doSuffixCheck = pathString.endsWith("*");
+
+        while (!files.isEmpty()) {
+            int index = RandomUtils.randInt(0, files.size() - 1);
+            File result = files.get(index);
+            if (!doSuffixCheck) {
+                return result;
+            }
+
+            String name = result.getName().toLowerCase();
+
+            if (name.endsWith(".jpg") ||
+                name.endsWith(".png") ||
+                name.endsWith(".gif") ||
+                name.endsWith(".webp") ||
+                name.endsWith(".jpeg")) {
+                return result;
+            }
+
+            files.remove(index);
+        }
+
+        return null;
     }
 
     public static void openRunScriptDialog(Window window, String name) {

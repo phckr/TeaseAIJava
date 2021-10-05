@@ -116,6 +116,9 @@ public class TeaseLogger {
         String logMessage = formatMessage(message, level);
         if (!logMessage.isEmpty()) {
             System.out.println(logMessage);
+            if (e != null) {
+                e.printStackTrace(System.out);
+            }
         }
     }
 

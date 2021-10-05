@@ -10,6 +10,7 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -178,15 +179,24 @@ public class Main {
 
             TeaseLogger.getLogger().log(Level.INFO, "Restarting with installation " + launchParameter);
 
+            String jarFile;
+
+	    try {
+		jarFile  = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+	    } catch (URISyntaxException e) {
+		e.printStackTrace();
+                jarFile = "TeaseAI.jar";
+            }
+
             if (javaFXFolder == null) {
-                Process process = Runtime.getRuntime().exec(new String[]{launchParameter, "-jar", "TeaseAI.jar"});
+                Process process = Runtime.getRuntime().exec(new String[]{launchParameter, "-jar", jarFile});
             } else {
                 String modulePath = "--module-path=" + getJavaFXLibFolder().getPath();
                 String modules = "--add-modules=javafx.controls,javafx.fxml,javafx.base,javafx.media,javafx.graphics,javafx.swing,javafx.web";
 
                 System.out.println("Starting with parameters: " + modulePath + " " + modules);
 
-                Process process = Runtime.getRuntime().exec(new String[]{launchParameter, modulePath, modules, "-jar", "TeaseAI.jar"});
+                Process process = Runtime.getRuntime().exec(new String[]{launchParameter, modulePath, modules, "-jar", jarFile});
             }
 
 

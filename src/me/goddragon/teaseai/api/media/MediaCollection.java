@@ -168,7 +168,7 @@ public class MediaCollection {
             File file = mediaHolder.getRandomMedia();
 
             //We found a file
-            if (file != null) {
+            if (file != null && file.length() > 20000) {
                 return file;
             }
             //No file found, the folder seems to be empty and we can remove it

@@ -108,6 +108,8 @@ public class ScriptHandler {
         registerFunction(new AddModuleStatisticFunction());
         registerFunction(new AddStrokeStatisticFunction());
         registerFunction(new GetThisSessionStatisticsFunction());
+        registerFunction(new SendWebControlJSON());
+        registerFunction(new AllocateTempUrlFunction());
     }
 
     public void registerFunction(CustomFunction function) {

@@ -151,7 +151,10 @@ public class ContactSettings {
         if (participant != null) {
             File image = participant.getContact().getImage();
 
-            if (image != null && image.exists() && image.isFile() && (image.getName().toLowerCase().endsWith(".jpg") || image.getName().toLowerCase().endsWith(".png") || image.getName().toLowerCase().endsWith(".jpeg"))) {
+            if (image != null && image.exists() && image.isFile()
+                    && (image.getName().toLowerCase().endsWith(".jpg")
+                    || image.getName().toLowerCase().endsWith(".png")
+                    || image.getName().toLowerCase().endsWith(".jpeg"))) {
                 ImageUtils.setImageInView(image, settingsController.domContactImageView);
                 settingsController.clickContactAvatarText.setText("");
             } else {

@@ -84,6 +84,6 @@ public class ShowImageFunction extends CustomFunctionExtended {
     }
 
     private File tryGetImageFromFilepath(String path) {
-        return FileUtils.getRandomMatchingFile(path);
+        return FileUtils.getRandomImageMatchingFile(path);
     }
 }

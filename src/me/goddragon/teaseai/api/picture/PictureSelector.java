@@ -32,7 +32,7 @@ public class PictureSelector {
 
         TaggedPicture toReturn = null;
         if (percentage <= 10) {
-            toReturn = participant.getPictureSet().getRandomPicture(DressState.FULLY_DRESSED, PictureTag.FACE);
+            toReturn = participant.getPictureSet(). getRandomPicture(DressState.FULLY_DRESSED, PictureTag.FACE);
         }
 
         if (MathUtils.isBetweenIncluding(percentage, 11, 20) || toReturn == null && percentage <= 10) {

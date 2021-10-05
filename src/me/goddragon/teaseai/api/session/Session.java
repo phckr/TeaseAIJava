@@ -98,7 +98,7 @@ public class Session {
         TeaseRunnableHandler.getHandler().checkRunnables();
 
         //Check whether there are new responses to handle
-        TeaseAI.application.checkForNewResponses();
+        TeaseAI.application.checkForNewResponsesIfNotNested();
 
         //Check for runnables -- twice because responses might take some time
         TeaseRunnableHandler.getHandler().checkRunnables();

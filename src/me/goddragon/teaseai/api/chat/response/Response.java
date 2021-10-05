@@ -1,5 +1,6 @@
 package me.goddragon.teaseai.api.chat.response;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.regex.Pattern;
@@ -15,9 +16,13 @@ public abstract class Response {
 
     private final Collection<Pattern> regexPatterns = new HashSet<>();
 
+    private final Collection<String> answers = new ArrayList<>();
+
     private String message;
     private boolean disabled = false;
     private boolean ignoreDisabledResponses = false;
+
+    private boolean anchoredAtStart = true;
 
     public Response() {
     }
@@ -75,6 +80,7 @@ public abstract class Response {
         indicator = indicator.trim();
         indicators.add(indicator);
         lowerCaseIndicators.add(indicator.toLowerCase());
+        anchoredAtStart = false;
     }
 
     public void addIndicators(String... indicators) {
@@ -85,11 +91,14 @@ public abstract class Response {
 
     public void addRegexPatterns(String... patterns) {
         for (String pattern : patterns) {
-            addRegexPatterns(Pattern.compile(pattern));
+            addRegexPatterns(Pattern.compile(pattern, Pattern.CASE_INSENSITIVE));
         }
     }
 
     public void addRegexPattern(Pattern pattern) {
+        if (!pattern.toString().startsWith("^")) {
+            anchoredAtStart = false;
+        }
         regexPatterns.add(pattern);
     }
 
@@ -121,6 +130,13 @@ public abstract class Response {
 
     public void setMessage(String message) {
         this.message = message;
+        this.answers.add(message);
+    }
+
+    public Collection<String> getAnswersAndClear() {
+        Collection<String> result = new ArrayList<>(this.answers);
+        this.answers.clear();
+        return result;
     }
 
     public boolean isIgnoreDisabledResponses() {
@@ -129,6 +145,10 @@ public abstract class Response {
 
     public void setIgnoreDisabledResponses(boolean ignoreDisabledResponses) {
         this.ignoreDisabledResponses = ignoreDisabledResponses;
+    }
+
+    public boolean isAnchoredAtStart() {
+        return anchoredAtStart;
     }
 
     @Override

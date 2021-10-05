@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/taj.css">
+<script src="https://cdn.jsdelivr.net/npm/buttplug@1.0.14/dist/web/buttplug.min.js" integrity="sha256-7KTanv3NixZdkIVK8qf3whxGk6UP30x0b0nSyDpfHts=" crossorigin="anonymous"></script>
+</head><body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<div class="outer horizontal"><div class="inner near">
+<div id=messages></div>
+<div id=precanned></div>
+<div id=inputarea>
+<textarea rows=1 id="input" onpaste="return false;" ondrop="return false;"></textarea>
+<input type=button id="startstop"/>
+</div>
+</div>
+<div id=media-container>
+<div id=media></div>
+<div id=video>
+  <div id=dom-image-container>
+    <img id="dom-image">
+  </div>
+  <div id=self-container>
+    <div id=scaler>
+      <video id=self autoplay muted playsinline></video>
+    </div>
+    <div id="switch-bg"></div>
+    <img id="switch" src="switch-camera.png">
+  </div>
+</div>
+</div>
+</div>
+<div id=largecameracontainer>
+  <div id=largecamera>
+    <video id=largeself autoplay muted playsinline></video>
+    <div id=reclight></div>
+    <div id=mask></div>
+  </div>
+</div>
+<div id=htmlcontainer>
+</div>
+<script src="/lru.js"> </script>
+<script src="/taj.js"> </script>
+<script src="/speech.js"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script>
+<script src="/video.js"> </script>
+<script src="/metronome.js"> </script>
+<script src="/buttplug.js"> </script>
+</body></html>

@@ -26,6 +26,8 @@ import me.goddragon.teaseai.api.session.Session;
 import me.goddragon.teaseai.api.session.StrokeHandler;
 import me.goddragon.teaseai.gui.ProgressForm;
 import me.goddragon.teaseai.gui.StartupProgressPane;
+import me.goddragon.teaseai.gui.http.EventSocket;
+import me.goddragon.teaseai.gui.http.HttpServer;
 import me.goddragon.teaseai.gui.main.MainGuiController;
 import me.goddragon.teaseai.gui.settings.AppearanceSettings;
 import me.goddragon.teaseai.utils.TeaseLogger;
@@ -83,7 +85,9 @@ public class TeaseAI extends Application {
     private Session session;
     public boolean TextToSpeechEnabled = false;
     private boolean responsesDisabled = false;
-
+    private int runningResponsesDepth = 0;
+    private HttpServer httpServer;
+    private EventSocket websocket;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -142,7 +146,7 @@ public class TeaseAI extends Application {
                 return null;
             }
         };
-
+        
         progressForm.bindProgressBar(task);
         startupProgressPane.addProgressBar(progressForm);
         startupProgressPane.show();
@@ -202,6 +206,8 @@ public class TeaseAI extends Application {
 
                 progressForm.setNameSync("Finishing startup...");
 
+                httpServer = new HttpServer(9443);
+
                 TeaseAI.application.runOnUIThread(new Runnable() {
                     @Override
                     public void run() {
@@ -239,6 +245,14 @@ public class TeaseAI extends Application {
         //startupProgressPane.addProgressBar(progressForm);
     }
 
+    public boolean checkForNewResponsesIfNotNested() {
+        if (runningResponsesDepth > 4) {
+            return false;
+        }
+
+        return checkForNewResponses();
+    }
+
     public boolean checkForNewResponses() {
         if (!Thread.currentThread().equals(getScriptThread())) {
             throw new IllegalStateException("Can only check for new responses on the script thread");
@@ -248,23 +262,30 @@ public class TeaseAI extends Application {
         List<Response> queued = (List<Response>) ResponseHandler.getHandler().getQueuedResponse().clone();
         ResponseHandler.getHandler().getQueuedResponse().clear();
 
+        runningResponsesDepth++;
+
         //Repeat for all queued responses
         while (!queued.isEmpty()) {
             Response queuedResponse = queued.get(0);
             queued.remove(0);
 
             if (queuedResponse != null) {
+                // This next line is odd as the response won't be on the queue because it was cleared.
                 ResponseHandler.getHandler().removeQueuedResponse(queuedResponse);
                 if ((queuedResponse.isIgnoreDisabledResponses() || !responsesDisabled)) {
                     if (queuedResponse.trigger()) {
+                        runningResponsesDepth--;
                         return true;
                     }
+                } else {
+                    TeaseLogger.getLogger().log(Level.INFO, "Discarding response " + queuedResponse);
                 }
             } else {
                 break;
             }
         }
 
+        runningResponsesDepth--;
         return false;
     }
 
@@ -283,7 +304,10 @@ public class TeaseAI extends Application {
 
         //Let's check whether we are supposed to force the session to end
         if (Thread.currentThread() == getScriptThread()) {
-            session.checkForForcedEnd();
+            boolean oldResponsesDisabled = isResponsesDisabled();
+            setResponsesDisabled(true);
+            session.checkForInteraction();
+            setResponsesDisabled(oldResponsesDisabled);
         }
     }
 
@@ -424,5 +448,17 @@ public class TeaseAI extends Application {
 
     public static TeaseAI getApplication() {
         return application;
+    }
+
+    public void registerWebsocket(EventSocket eventSocket) {
+        websocket = eventSocket;
+    }
+
+    public void unregisterWebsocket() {
+        websocket = null;
+    }
+
+    public static EventSocket getWebsocket() {
+        return getApplication().websocket;
     }
 }

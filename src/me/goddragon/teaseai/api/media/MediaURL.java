@@ -294,7 +294,7 @@ public class MediaURL extends MediaHolder implements Observable {
                 String mediaUrl = mediaURLs.get(RandomUtils.randInt(0, mediaURLs.size() - 1));
 
                 final File imageFile = MediaHandler.getHandler().tryGetImageFromURL(mediaUrl);
-                if (imageFile != null) {
+                if (imageFile != null && imageFile.length() > 20000) {
                     return imageFile;
                 }
             }

@@ -1,10 +1,12 @@
 package me.goddragon.teaseai.api.scripts.nashorn;
 
 import java.io.File;
+import java.util.logging.Level;
 
 import me.goddragon.teaseai.api.chat.ChatHandler;
 import me.goddragon.teaseai.api.media.MediaHandler;
 import me.goddragon.teaseai.utils.FileUtils;
+import me.goddragon.teaseai.utils.TeaseLogger;
 
 /**
  * Created by GodDragon on 25.03.2018.
@@ -42,5 +44,9 @@ public class SendMessageFunction extends CustomFunctionExtended {
     protected void onCall(String message, Number durationSeconds, Boolean showTyping) {
         ChatHandler.getHandler().getSelectedSender().customMessage(
                 message, durationSeconds.longValue() * 1000, showTyping);
+    }
+
+    protected void onCall(Object... args) {
+        TeaseLogger.getLogger().log(Level.SEVERE, "sendMessage called with args: " + args.toString());
     }
 }

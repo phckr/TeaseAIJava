@@ -8,6 +8,7 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaView;
 
 import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.gui.http.EventSocket;
 import me.goddragon.teaseai.utils.TeaseLogger;
 
 public class VideoHandler {
@@ -16,27 +17,39 @@ public class VideoHandler {
         this.asyncOnVideoPlaybackEnded = asyncOnVideoPlaybackEnded;
     }
 
+    public static boolean sendToWebsocket(String filename, boolean wait) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+        if (websocket != null) {
+            websocket.sendVideo(filename, wait);
+            return true;
+        }
+        return false;
+    }
+
     public void play(Media media, boolean waitUntilPlaybackFinished) {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
         }
+        if (!sendToWebsocket(media.toString(), waitUntilPlaybackFinished)) {
+            mediaPlayer = new SelfDisposingMediaPlayer(media, this::asyncOnPlaybackStarted, this::asyncOnPlaybackEnded);
+            switchToVideoView(mediaPlayer);
+            isWaitingForPlaybackToFinish = waitUntilPlaybackFinished;
+            mediaPlayer.start();
 
-        mediaPlayer = new SelfDisposingMediaPlayer(media, this::asyncOnPlaybackStarted, this::asyncOnPlaybackEnded);
-        switchToVideoView(mediaPlayer);
-        isWaitingForPlaybackToFinish = waitUntilPlaybackFinished;
-        mediaPlayer.start();
+            if (waitUntilPlaybackFinished) {
+                while (mediaPlayer.isPlaying()) {
+                    TeaseAI.application.waitPossibleScripThread(0);
+                    TeaseAI.application.checkForNewResponses();
+                }
 
-        if (waitUntilPlaybackFinished) {
-            while (mediaPlayer.isPlaying()) {
-                TeaseAI.application.waitPossibleScripThread(0);
-                TeaseAI.application.checkForNewResponses();
+                isWaitingForPlaybackToFinish = false;
             }
-
-            isWaitingForPlaybackToFinish = false;
         }
     }
 
     public void stop() {
+        sendToWebsocket(null, false);
+    	TeaseLogger.getLogger().log(Level.FINE, "Stopping media");
         if (mediaPlayer != null) {
             mediaPlayer.stop();
         }

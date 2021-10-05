@@ -212,7 +212,10 @@ public class PictureHandler {
             for (File folder : folders) {
                 File[] files = folder.listFiles(new FilenameFilter() {
                     public boolean accept(File dir, String name) {
-                        return name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".gif");
+                        return name.toLowerCase().endsWith(".jpg")
+                                || name.toLowerCase().endsWith(".png")
+                                || name.toLowerCase().endsWith(".webp")
+                                || name.toLowerCase().endsWith(".gif");
                     }
                 });
 

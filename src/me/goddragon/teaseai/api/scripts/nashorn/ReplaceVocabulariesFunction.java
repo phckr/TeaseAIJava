@@ -27,6 +27,11 @@ public class ReplaceVocabulariesFunction extends CustomFunction {
         switch (args.length) {
             case 1:
                 return VocabularyHandler.getHandler().replaceAllVocabularies(args[0].toString());
+            case 2:
+                if (args[1] instanceof Number) {
+                    return VocabularyHandler.getHandler().replaceAllVocabularies(args[0].toString(), ((Number) args[1]).intValue());
+                }
+                break;
             case 0:
                 TeaseLogger.getLogger().log(Level.SEVERE, "Called " + getFunctionName() + " method without parameters.");
                 return null;

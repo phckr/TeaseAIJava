@@ -9,13 +9,18 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.api.chat.response.Response;
+import me.goddragon.teaseai.api.chat.response.ResponseHandler;
 import me.goddragon.teaseai.api.scripts.personality.PersonalityManager;
 import me.goddragon.teaseai.api.texttospeech.TTSVoicable;
 import me.goddragon.teaseai.api.texttospeech.TextToSpeech;
+import me.goddragon.teaseai.gui.http.EventSocket;
 import me.goddragon.teaseai.utils.TeaseLogger;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 /**
  * Created by GodDragon on 22.03.2018.
@@ -136,6 +141,85 @@ public class ChatHandler {
         return currentDom != null ? currentDom : getMainDomParticipant();
     }
 
+    private void handleRemoteSubMessage(String message, boolean realMessage) {
+        Collection<Response> responses = ResponseHandler.getHandler().checkMessageForResponse(message);
+
+        if (!responses.isEmpty()) {
+            for (Response response : responses) {
+                //Set the message of the response so we know what triggered it later on
+                response.setMessage(message);
+
+                //Queue the response so we can call it later
+                ResponseHandler.getHandler().addQueuedResponse(response);
+            }
+        }
+
+        if (realMessage) {
+            onSubMessage(message);
+        } else {
+            TeaseAI.application.setResponsesDisabled(false);
+
+            if (currentCallback != null && currentCallback.getAnswer() == null) {
+                //Wake the script thread, the user might want some response
+                synchronized (TeaseAI.application.getScriptThread()) {
+                    TeaseAI.application.getScriptThread().notify();
+                }
+            }
+        }
+    }
+
+    private static String getWebColor(Color color) {
+        return String.format("%02x%02x%02x",
+                Math.round(color.getRed() * 255),
+                Math.round(color.getGreen() * 255),
+                Math.round(color.getBlue() * 255)
+        );
+    }
+
+    private String escapeJson(String string) {
+        return string.replaceAll("\"", "\\\\\"");
+    }
+
+    private String mergeText(Text[] text) {
+        String result = "[";
+        String sep = "";
+        for (Text item : text) {
+            result += sep;
+            sep = ",";
+            String piece = escapeHtml(item.getText());
+            // Now add tags
+            String fontStyle = item.getFont().getStyle();
+            if (fontStyle == "italic") {
+                piece = "<em>" + piece + "</em>";
+            }
+            piece = piece.replaceAll("(http(s)?://[^ <]+)", "<a target=\"_blank\" href=\"$1\">$1</a>");
+            piece = String.format("{\"color\":\"%s\",\"text\":\"%s\"}", getWebColor((Color) item.getFill()), escapeJson(piece));
+            result += piece;
+        }
+
+        result += "]";
+
+        return result;
+    }
+
+    private void sendTextToWebsocket(boolean temporary, Text... text) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+
+        if (websocket != null) {
+            websocket.onMessage((String message, Boolean realMessage) -> { this.handleRemoteSubMessage(message, realMessage);});
+            try {
+                String message = mergeText(text);
+                if (!temporary) {
+                    websocket.sendText(message);
+                } else {
+                    websocket.sendTempText(message);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void addText(String message) {
         addText(new Text(message));
     }
@@ -169,6 +253,7 @@ public class ChatHandler {
         if (!temporary) {
             TeaseLogger.getLogger().log(Level.FINE, text.getText());
         }
+        sendTextToWebsocket(temporary, text);
     }
 
     public void addText(Text... text) {
@@ -189,6 +274,8 @@ public class ChatHandler {
         for (Text textPiece : text) {
             resultingText += textPiece.getText();
         }
+
+        sendTextToWebsocket(false, text);
 
         TeaseLogger.getLogger().log(Level.FINE, resultingText);
     }
@@ -216,6 +303,7 @@ public class ChatHandler {
             }
         });
 
+        sendTextToWebsocket(false, text);
         TeaseLogger.getLogger().log(Level.FINE, text.getText());
     }
 
@@ -248,11 +336,15 @@ public class ChatHandler {
         });
 
         String resultingText = "";
+        List<Text> textList = new ArrayList<>();
         for (Node textPiece : text) {
             if(textPiece instanceof Text) {
                 resultingText += ((Text) textPiece).getText();
+                textList.add((Text) textPiece);
             }
         }
+
+        sendTextToWebsocket(false, textList.toArray(new Text[textList.size()]));
 
         TeaseLogger.getLogger().log(Level.FINE, resultingText);
     }

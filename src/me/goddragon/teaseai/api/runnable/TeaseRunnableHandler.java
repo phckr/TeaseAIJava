@@ -2,6 +2,8 @@ package me.goddragon.teaseai.api.runnable;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by GodDragon on 12.06.2018.
@@ -10,7 +12,7 @@ public class TeaseRunnableHandler {
 
     private static final TeaseRunnableHandler handler = new TeaseRunnableHandler();
 
-    private final Collection<TeaseRunnable> runnables = new HashSet<>();
+    private final Collection<TeaseRunnable> runnables = new ConcurrentLinkedQueue<>();
 
     private final Collection<TeaseRunnable> toRemoveRunnables = new HashSet<>();
 

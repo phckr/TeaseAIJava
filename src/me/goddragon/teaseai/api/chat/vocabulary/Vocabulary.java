@@ -30,6 +30,8 @@ public class Vocabulary {
         return synonyms;
     }
 
+    public String toString(String arg) { return toString(); }
+
     public String toString() {
         return RandomUtils.getWinner(synonyms).toString();
     }

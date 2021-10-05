@@ -1,5 +1,6 @@
 package me.goddragon.teaseai.api.chat.response;
 
+import jdk.nashorn.api.scripting.NashornException;
 import me.goddragon.teaseai.TeaseAI;
 import me.goddragon.teaseai.api.scripts.ScriptHandler;
 import me.goddragon.teaseai.api.scripts.personality.Personality;
@@ -53,17 +54,25 @@ public class ResponseHandler {
                         try {
 
                             Invocable invocable = (Invocable) engine;
-                            Object result = invocable.invokeFunction(functionName, getMessage());
+                            Object result = invocable.invokeFunction(functionName, getMessage(), this.getAnswersAndClear());
 
                             if (result instanceof Boolean) {
                                 return (Boolean) result;
                             }
                             return false;
                         } catch (ScriptException e) {
-                            TeaseLogger.getLogger().log(Level.SEVERE, "Error while handling file '" + e.getFileName() + "' in line " + e.getLineNumber() + "\n" +
+                            TeaseLogger.getLogger().log(Level.SEVERE, "Error while handling file '" + e.getFileName() + "' in line " + e.getLineNumber() + " while invoking function " + functionName + "\n" +
                                     "Error: " + e.getMessage(), false);
+                            if (e.getCause() instanceof NashornException){
+                                String jsStackTrace = NashornException.getScriptStackString(e.getCause());
+                                TeaseLogger.getLogger().log(Level.SEVERE, jsStackTrace);
+                            }
                         } catch (NoSuchMethodException e) {
-                            TeaseLogger.getLogger().log(Level.SEVERE, "Response '" + responseName + " is missing the function to trigger it. Create the function '" + functionName + "(message)' for this to work.", false);
+                            TeaseLogger.getLogger().log(Level.SEVERE, "Response '" + responseName + "' is missing the function to trigger it. Create the function '" + functionName + "(message)' for this to work: " + e.getMessage(), false);
+                            if (e.getCause() instanceof NashornException){
+                                String jsStackTrace = NashornException.getScriptStackString(e.getCause());
+                                TeaseLogger.getLogger().log(Level.SEVERE, jsStackTrace);
+                            }
                         }
                         return false;
                     }
@@ -128,15 +137,16 @@ public class ResponseHandler {
 
     public Collection<Response> checkMessageForResponse(String message) {
         List<Response> responses = new ArrayList<>();
-
         synchronized (responses) {
             for (Response response : this.responses) {
+                if (message.length() > 100 && !response.isAnchoredAtStart()) {
+                    continue;
+                }
                 if (response.containsLike(message) && !response.isDisabled() && (response.isIgnoreDisabledResponses() || !TeaseAI.application.isResponsesDisabled())) {
                     responses.add(response);
                 }
             }
         }
-
         return responses;
     }
 

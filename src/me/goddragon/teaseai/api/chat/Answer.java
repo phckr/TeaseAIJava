@@ -1,6 +1,9 @@
 package me.goddragon.teaseai.api.chat;
 
+import jdk.nashorn.api.scripting.JSObject;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.gui.http.EventSocket;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +29,15 @@ public class Answer {
         addOption(optionMessage, optionMessage);
     }
 
+    private static void sendToWebsocket(String optionName, String optionMessage) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+        if (websocket != null) {
+            websocket.addOption(optionName, optionMessage);
+        }
+    }
+
     public static void addOption(String optionName, String optionMessage) {
+        sendToWebsocket(optionName, optionMessage);
         TeaseAI.application.runOnUIThread(new Runnable() {
             @Override
             public void run() {
@@ -36,6 +47,7 @@ public class Answer {
     }
 
     public void clearOptions() {
+        sendToWebsocket(null, null);
         TeaseAI.application.runOnUIThread(new Runnable() {
             @Override
             public void run() {
@@ -46,13 +58,41 @@ public class Answer {
     }
 
     public void loop() {
+      loop(null);
+    }
+
+    public void loop(ScriptObjectMirror exitIf) {
         this.answer = null;
         this.timeout = false;
 
         TeaseAI.application.setResponsesDisabled(true);
 
         startedAt = System.currentTimeMillis();
-        TeaseAI.application.waitPossibleScripThread(millisTimeout);
+
+        while (true) {
+            long left = timeoutLeft();
+            if (left < 0) {
+                System.out.println("Answer-loop: timed out");
+                break;
+            }
+            TeaseAI.application.waitPossibleScripThread(100);
+            if (answer != null && answer.length() > 0) {
+                System.out.println(String.format("Answer-loop: answer '%s'", answer));
+                break;
+            }
+            if (TeaseAI.application.getSession() != null && TeaseAI.application.getSession().isStarted() && Thread.currentThread() == TeaseAI.application.getScriptThread()) {
+                TeaseAI.application.getSession().checkForInteraction();
+            }
+            if (exitIf != null && exitIf.isFunction()) {
+              Object result = exitIf.call(null);
+              if (result != null && result instanceof Boolean) {
+                if ((Boolean) result) {
+                  break;
+                }
+              }
+            }
+        }
+
         checkTimeout();
     }
 
@@ -200,6 +240,18 @@ public class Answer {
 
     public void setStartedAt(long startedAt) {
         this.startedAt = startedAt;
+    }
+
+    private long timeoutLeft() {
+        if (millisTimeout > 0) {
+            long left = millisTimeout - (System.currentTimeMillis() - startedAt);
+            if (left > 0) {
+                return left;
+            }
+            return -1;
+        }
+
+        return millisTimeout;
     }
 
     public void checkTimeout() {

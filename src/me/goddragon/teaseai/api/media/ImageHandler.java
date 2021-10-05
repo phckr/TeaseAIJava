@@ -14,6 +14,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.media.MediaView;
 
 import me.goddragon.teaseai.TeaseAI;
+import me.goddragon.teaseai.gui.http.EventSocket;
 import me.goddragon.teaseai.utils.FileUtils;
 import me.goddragon.teaseai.utils.TeaseLogger;
 import me.goddragon.teaseai.utils.media.AnimatedGif;
@@ -59,8 +60,21 @@ public class ImageHandler {
         return null;
     }
 
+    private void sendDisplayImage(String filename, String region) {
+        EventSocket websocket = TeaseAI.getWebsocket();
+        if (websocket != null) {
+            try {
+                websocket.displayMedia(filename, region);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void switchToImageView(File file) {
         final AtomicBoolean readyFlag = new AtomicBoolean();
+        
+        TeaseLogger.getLogger().log(Level.FINE, "Showing image: " + file.toString());
 
         TeaseAI.application.runOnUIThread(() -> {
             MediaView mediaView = TeaseAI.application.getController().getMediaView();

@@ -58,8 +58,10 @@ public class MediaHandler {
         try {
             media = new Media(uri);
         } catch (MediaException ex) {
-            TeaseLogger.getLogger().log(
-                    Level.SEVERE, "Video format of '" + uri + "' unknown: " + ex.getMessage());
+            if (!VideoHandler.sendToWebsocket(uri, waitUntilPlaybackFinished)) {
+	        TeaseLogger.getLogger().log(
+		      Level.SEVERE, "Video format of '" + uri + "' unknown: " + ex.getMessage());
+	    }
         }
 
         if (media != null) {
