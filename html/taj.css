@@ -493,3 +493,13 @@ div#wave .dot {
   margin: auto;
   background: blue;
 }
+
+#camera-off {
+  background: #999;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  padding-left: 30px;
+  padding-right: 30px;
+}

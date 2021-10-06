@@ -69,6 +69,7 @@ function detachVideo() {
   videoElement.srcObject = null;
   imageCapture = null;
   videoCapture = null;
+  $('#camera-off').show();
 }
 
 function enablePaste(name) {
@@ -141,17 +142,22 @@ function gotDevices(deviceInfos) {
     $('#switch').hide();
     $('#switch-bg').hide();
   }
-  cameraIndex = cameraIndex % numCameras;
 
-  for (let i = 0; i !== deviceInfos.length; ++i) {
-    const deviceInfo = deviceInfos[i];
-    if (deviceInfo.kind === "videoinput") {
-      if (cameraIndex == cameras) {
-        constraints.video.deviceId.exact = deviceInfo.deviceId;
+  if (numCameras > 0) {
+    cameraIndex = cameraIndex % numCameras;
+
+    for (let i = 0; i !== deviceInfos.length; ++i) {
+      const deviceInfo = deviceInfos[i];
+      if (deviceInfo.kind === "videoinput") {
+	if (cameraIndex == cameras) {
+          if (deviceInfo.deviceId) {
+	    constraints.video.deviceId.exact = deviceInfo.deviceId;
+          }
+	}
+	cameras++;
+      } else {
+	//console.log("Found another kind of device: ", deviceInfo);
       }
-      cameras++;
-    } else {
-      //console.log("Found another kind of device: ", deviceInfo);
     }
   }
 }
@@ -179,6 +185,9 @@ function gotStream(stream) {
   videoElement.srcObject = stream;
   imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
   videoCapture = new MediaRecorder(stream);
+  if (videoElement == document.querySelector('video#self')) {
+    $('#camera-off').hide();
+  }
 }
 
 function nextCamera() {
@@ -537,4 +546,6 @@ function setMotionDetector(enable) {
   }
 }
 
-checkMediaDevices();
+function videoStart() {
+  checkMediaDevices();
+}

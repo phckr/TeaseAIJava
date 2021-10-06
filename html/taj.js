@@ -593,6 +593,7 @@ window.onresize = function () {
 
 document.body.onclick = function() {
   speech_start();
+  videoStart();
   document.body.requestFullscreen({ navigationUI: 'hide' });
   document.body.onclick = null;
 }
