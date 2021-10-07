@@ -20,6 +20,15 @@ var personalityStarted;
 var synthesisVoice;
 var synthesizing;
 var messageScrollingInProgress;
+var socketKeepAliveTimer;
+var bluetoothScanPending;
+
+function possiblyStartScanning() {
+  if (bluetoothScanPending) {
+    buttplugStartScanning(bluetoothScanPending);
+    bluetoothScanPending = null;
+  }
+}
 
 function websocketFailed(event) {
   if (event.target.ignoreError) {
@@ -54,13 +63,25 @@ function connectSocket() {
   newSocket.addEventListener('message', function (event) { dispatchMessage(event.data); });
   newSocket.addEventListener('error', websocketFailed);
   newSocket.addEventListener('close', websocketFailed);
-  newSocket.addEventListener('open', function (event) { socket = event.target; addNotice("Connected"); requestData(); });
+  newSocket.addEventListener('open', function (event) { socket = event.target; addNotice("Connected"); requestData(); /*buttplugInitialize();*/ });
   connectingSocket = newSocket;
 }
 
+function sendPing() {
+  socketSend("P" + JSON.stringify({ captured: Date.now() }));
+}
+
+function socketSend(message) {
+  if (socketKeepAliveTimer) {
+    clearTimeout(socketKeepAliveTimer);
+  }
+  socket.send(message);
+  socketKeepAliveTimer = setTimeout(sendPing, 5000);
+}
+
 function requestData() {
-  socket.send("P" + JSON.stringify({command: "vocab", arg: "%DomHonorific%" }));
-  socket.send("P" + JSON.stringify({command: "vocab", arg: "response" }));
+  socketSend("P" + JSON.stringify({command: "vocab", arg: "%DomHonorific%" }));
+  socketSend("P" + JSON.stringify({command: "vocab", arg: "response" }));
 }
 
 function setBubbleWidth(span) {
@@ -316,6 +337,14 @@ function interpretJson(j) {
       $('#input').val(j.prefill);
     }
   }
+  if (j.bluetooth) {
+    if (j.bluetooth.startScanning) {
+      bluetoothScanPending = j.name;
+    }
+    if (j.bluetooth.play) {
+      buttplugPlay(j.bluetooth.deviceName, j.bluetooth.play);
+    }
+  }
   if (j.headHold) {
     setHeadHold(j.headHold);
   }
@@ -463,7 +492,7 @@ function dispatchMessage(message) {
 
 function send(message) {
   message = message.trim();
-  socket.send("*" + message);
+  socketSend("*" + message);
   appendMessage(JSON.stringify([{text: message, color: "fff"}]), false);
 }
 
@@ -471,7 +500,7 @@ function tajSend(message) {
   if (!message.captured) {
     message.captured = Date.now();
   }
-  socket.send("P" + JSON.stringify(message));
+  socketSend("P" + JSON.stringify(message));
 }
 
 function addPre(label, content) {
@@ -479,6 +508,7 @@ function addPre(label, content) {
   b.prop("value", label);
   b.prop("title", content);
   b.click(function() {
+   possiblyStartScanning();
    send(content);
   });
   $("#precanned").append(b);
@@ -501,7 +531,7 @@ function setStartStop(started) {
   b.off();
   b.click(function() {
     setStartStop(!started);
-    socket.send("S");
+    socketSend("S");
     personalityStarted = started;
   });
 }
@@ -560,8 +590,9 @@ $(document).ready(function() {
     e.when = Date.now();
     lastEvent.mouseMove = e;
   });
-  $('#input').on('input', function() { resetInputAreaHeight(this); });
-  buttplugInitialize();
+  $('#input').on('input', function() { possiblyStartScanning(); resetInputAreaHeight(this); });
+  connectSocket();
+  //buttplugInitialize();
 });
 
 setInterval(function() {
@@ -572,7 +603,7 @@ setInterval(function() {
     if (e) {
       data.mouseMove = { x: e.pageX, y: e.pageY, id: e.target.id, className: e.target.classNamei, ago: now - e.when };
     }
-    socket.send("P" + JSON.stringify(data));
+    socketSend("P" + JSON.stringify(data));
   }
 }, 5000);
 
@@ -597,8 +628,6 @@ document.body.onclick = function() {
   document.body.requestFullscreen({ navigationUI: 'hide' });
   document.body.onclick = null;
 }
-
-connectSocket();
 
 setStartStopError();
 

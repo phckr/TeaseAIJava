@@ -2,9 +2,21 @@
   var client;
   // Our wrapper for actual devices
   var tajDevices = {};
+  var scanId;
+  var executingId;
 
   buttplugInitialize = async function () {
-    await Buttplug.buttplugInit();
+
+    try {
+      await Buttplug.buttplugInit();
+    } catch (e) {
+      console.log("Failed to init: " + e);
+    }
+
+    if (client) {
+      await client.stopAllDevices();
+      await client.disconnect();
+    }
 
     const connector = new Buttplug.ButtplugEmbeddedConnectorOptions();
     client = new Buttplug.ButtplugClient("TAJ Client");
@@ -17,6 +29,9 @@
          execute: tajDeviceExecute, executeIp: tajDeviceExecuteIp, send: tajDeviceSend };
       //console.log("Client currently knows about these devices:");
       //client.Devices.forEach((device) => console.log(`- ${device.Name}`));
+      if (scanId) {
+        tajDevices[device.Name].send(scanId);
+      } 
     });
     client
       .addListener("deviceremoved", (device) => {
@@ -25,7 +40,8 @@
       });
   }
 
-  buttplugStartScanning = function () {
+  buttplugStartScanning = function (id) {
+    scanId = id;
     client.startScanning();
   };
 
@@ -39,8 +55,9 @@
     };
   }
 
-  function tajDeviceSend(info) {
-    var msg = { device: this.device.Name, info: info };
+  function tajDeviceSend(id, info) {
+    var allowed = this.AllowedMessages();
+    var msg = { name: id, bluetooth: { device: this.device.Name, allowedMessages: allowed, info: info }};
     tajSend(msg);
   }
 
@@ -86,7 +103,7 @@
 
   function errorHandler(thisVal, cmd) {
     return function(err) {
-      thisVal.send({error: err, command: cmd, device: this.device.Name });
+      thisVal.send(executingId, {error: err, command: cmd });
     };
   }
 
@@ -138,20 +155,20 @@
 
       if (cmd == "batteryLevel") {
         this.device.batteryLevel().then((level) => { 
-           this.send({batteryLevel: level, allowedMessages: this.AllowedMessages() });
+           this.send(executingId, {batteryLevel: level });
         }).catch(errorHandler(this, cmd));
         return;
       }
    
       if (cmd == "rssiLevel") {
         this.device.rssiLevel().then((level) => { 
-           this.send({rssiLevel: level, allowedMessages: this.AllowedMessages() });
+           this.send(executingId, {rssiLevel: level });
         }).catch(errorHandler(this, cmd));
         return;
       }
    
       if (cmd == "supported") {
-        this.send({allowedMessages: this.AllowedMessages() });
+        this.send(executingId, { });
         return;
       }
    
@@ -160,7 +177,7 @@
         continue;
       }
 
-      this.send({error: "Unknown command: " + cmd, allowedMessages: this.AllowedMessages() });
+      this.send(executingId, {error: "Unknown command: " + cmd });
       console.log("Unknown command: " + cmd);
       return;
     }
@@ -174,13 +191,14 @@
     return tajDevice.device[command].apply(null, args);
   };
 
-  buttplugPlay = function(name, instructions) {
+  buttplugPlay = function(id, name, instructions) {
     var tajDevice = getDeviceByName(name);
     if (!tajDevice) {
       return false;
     }
 
     tajDevice.stop();
+    executingId = id;
     tajDevice.execute(instructions);
   };
 }
