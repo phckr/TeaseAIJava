@@ -1,10 +1,18 @@
 package me.goddragon.teaseai.gui.http;
 
+import me.goddragon.teaseai.api.chat.ChatHandler;
 import org.eclipse.jetty.http.HttpVersion;
+import org.eclipse.jetty.security.ConstraintMapping;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.HashLoginService;
+import org.eclipse.jetty.security.UserStore;
+import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.security.Constraint;
+import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.server.NativeWebSocketServletContainerInitializer;
 import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
@@ -25,6 +33,23 @@ public class HttpServer {
 
     public HttpServer(int port) {
         server = new Server();
+
+        HashLoginService loginService = new HashLoginService("TeaseAI");
+
+        UserStore userStore = new UserStore();
+        userStore.addUser(ChatHandler.getHandler().getSubParticipant().getName(),
+                new Password(ChatHandler.getHandler().getMainDomParticipant().getName()), new String[] { "user" });
+
+        loginService.setUserStore(userStore);
+
+        try {
+            loginService.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        //server.addBean(loginService);
 
         final SslContextFactory sslContextFactory = new SslContextFactory.Server();
         File keyStore = new File("TeaseAI-keystore.jks");
@@ -47,9 +72,27 @@ public class HttpServer {
 
         // Setup the basic application "context" for this application at "/"
         // This is also known as the handler tree (in jetty speak)
-        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS|ServletContextHandler.SECURITY);
         context.setContextPath("/");
         context.setWelcomeFiles(new String[] { "index.html" });
+
+        final Constraint constraint = new Constraint();
+        constraint.setName(Constraint.__BASIC_AUTH);
+        constraint.setRoles(new String[]{"user"});
+        constraint.setAuthenticate(true);
+
+        final ConstraintMapping constraintMapping = new ConstraintMapping();
+        constraintMapping.setConstraint(constraint);
+        constraintMapping.setPathSpec("/*");
+
+        final ConstraintSecurityHandler securityHandler = new ConstraintSecurityHandler();
+        securityHandler.addConstraintMapping(constraintMapping);
+        securityHandler.setAuthenticator(new BasicAuthenticator());
+        securityHandler.setLoginService(loginService);
+        securityHandler.setRealmName("TeaseAI");
+
+        context.setSecurityHandler(securityHandler);
+
         server.setHandler(context);
 
         // Configure specific websocket behavior

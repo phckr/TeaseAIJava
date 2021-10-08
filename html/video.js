@@ -8,6 +8,7 @@ var imageCapture;
 var videoCapture;
 var drawPosenetResults = false;
 var motionDetector = false;
+var posenetAnalysisTime = 100;
 
 function sendDataAs(type, name, data) {
   var toSend = {};
@@ -360,7 +361,7 @@ posenet.load(net_v1).then(function(net) {
         // posenet model loaded
 
 posenetResultFunction = function() { 
-  var start = Date.now();
+  const start = Date.now();
   // Get the aspect ratio of the video
   var aspectRatio = $('#self').prop('videoWidth') / $('#self').prop('videoHeight');
   $('#self').prop('width', VIDEOSCALE * aspectRatio * $('#self-container').height());
@@ -371,7 +372,15 @@ posenetResultFunction = function() {
   if (imageElement.srcObject && imageElement.srcObject.active) {
     const pose = net.estimateSinglePose(imageElement, { flipHorizontal: true });
     pose.then(function(result) { 
-      //console.log("Took %d ms", Date.now() - start); console.log(result); 
+      var took = Date.now() - start;
+      posenetAnalysisTime = posenetAnalysisTime * 0.9 + took * 0.1;
+      if (took > 250) {
+        console.log("Took %d ms (avg %d ms)", took, posenetAnalysisTime); // console.log(result); 
+      }
+      if (posenetAnalysisTime > 500) {
+	clearTimeout(posenetResultTimer);
+        posenetResultTimer = 0;
+      }
       //console.log("Present: %s", evaluatePresent(result));
       const position = evaluatePosition(result);
 
