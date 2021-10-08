@@ -80,7 +80,8 @@ public class TeaseAI extends Application {
     public final ConfigValue ESTIM_CHANNEL_C_MAX = new ConfigValue("estimChannelCMax", "99", configHandler);
     public final ConfigValue ESTIM_CHANNEL_D_MIN = new ConfigValue("estimChannelDMin", "1", configHandler);
     public final ConfigValue ESTIM_CHANNEL_D_MAX = new ConfigValue("estimChannelDMax", "99", configHandler);
-    
+    public final ConfigValue HTTPS_PORT = new ConfigValue("httpsPort", "9443", configHandler);
+
     
     private Session session;
     public boolean TextToSpeechEnabled = false;
@@ -206,7 +207,15 @@ public class TeaseAI extends Application {
 
                 progressForm.setNameSync("Finishing startup...");
 
-                httpServer = new HttpServer(9443);
+                int httpsPort = Integer.parseInt(System.getProperty("https.port", "-1"));
+
+                if (httpsPort < 0) {
+                    httpsPort = HTTPS_PORT.getInt();
+                } else {
+                    HTTPS_PORT.setValue(Integer.toString(httpsPort)).save();
+                }
+
+                httpServer = new HttpServer(httpsPort);
 
                 TeaseAI.application.runOnUIThread(new Runnable() {
                     @Override
