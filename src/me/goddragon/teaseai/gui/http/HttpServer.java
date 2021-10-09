@@ -1,6 +1,8 @@
 package me.goddragon.teaseai.gui.http;
 
 import me.goddragon.teaseai.api.chat.ChatHandler;
+import me.goddragon.teaseai.api.scripts.personality.PersonalityManager;
+import me.goddragon.teaseai.utils.TeaseLogger;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.logging.Level;
 //import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 
 /**
@@ -36,9 +39,19 @@ public class HttpServer {
 
         HashLoginService loginService = new HashLoginService("TeaseAI");
 
+        String honorific;
+
+        try {
+            honorific = PersonalityManager.getManager().getLoadingPersonality()
+                    .getVariableHandler().getVariable("dommeHonorific").getValue().toString() + " ";
+        } catch (Exception e) {
+            honorific = "";
+        }
+
         UserStore userStore = new UserStore();
         userStore.addUser(ChatHandler.getHandler().getSubParticipant().getName(),
-                new Password(ChatHandler.getHandler().getMainDomParticipant().getName()), new String[] { "user" });
+                new Password(honorific + ChatHandler.getHandler().getMainDomParticipant().getName()),
+                new String[] { "user" });
 
         loginService.setUserStore(userStore);
 
